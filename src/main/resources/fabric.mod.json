@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "tp4mods",
+  "version": "${version}",
+  "name": "TP Manager",
+  "description": "Graphical Administrator Interface to manage users' teleportations",
+  "authors": ["Edujos"],
+  "contact": {
+    "homepage": "https://learnarc.site",
+    "sources": "https://github.com/EDUJOS"
+  },
+  "license": "All-Rights-Reserved",
+  "icon": "assets/tp4mods/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "zero.mods.fabric.tp4mods.client.Tp4modsClient"
+    ],
+    "main": [
+      "zero.mods.fabric.tp4mods.Tp4Mods"
+    ]
+  },
+  "mixins": [
+    "tp4mods.mixins.json",
+    {
+      "config": "tp4mods.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": ""
+      }
+    }
+  }
+}
