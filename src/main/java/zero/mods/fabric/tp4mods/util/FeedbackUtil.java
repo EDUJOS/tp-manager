@@ -13,7 +13,7 @@ public class FeedbackUtil {
         player.sendMessage(text, false);
     }
 
-    private static void sendTranslationFeedback(ServerPlayerEntity player, String key, Formatting[] formatting, Object... args) {
+    public static void sendTranslationFeedback(ServerPlayerEntity player, String key, Formatting[] formatting, Object... args) {
         Text text = args.length >= 1 ? Text.translatable(key, args).formatted(formatting) : Text.translatable(key).formatted(formatting);
         player.sendMessage(text, false);
     }
