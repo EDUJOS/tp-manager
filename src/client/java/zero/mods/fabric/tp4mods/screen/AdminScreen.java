@@ -6,13 +6,13 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import zero.mods.fabric.tp4mods.payload.PlayerListPayload;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import zero.mods.fabric.tp4mods.util.PlayerSkinCache;
 
@@ -94,14 +94,15 @@ public class AdminScreen extends Screen {
                 x, y, TEXT_COLOR
         );
         String coordinates = String.format("%.1f  %.1f  %.1f", player.position().x(), player.position().y(), player.position().z());
+        MutableText worldName = getDimensionName(player.position().worldId());
         context.drawTextWithShadow(
                 textRenderer,
-                Text.literal(getDimensionName(player.position().worldId()) + ": ").append(Text.literal(coordinates)),
+                worldName.append(": " + coordinates),
                 x, y + 10, SECONDARY_COLOR
         );
     }
 
-    private Text getDimensionName(String worldId) {
+    private MutableText getDimensionName(String worldId) {
         return switch (worldId) {
             case "minecraft:overworld" -> Text.translatable("gui.general.dimension.overworld");
             case "minecraft:the_nether" -> Text.translatable("gui.general.dimension.nether");
@@ -109,24 +110,6 @@ public class AdminScreen extends Screen {
             default -> Text.translatable("gui.general.dimension.unknown");
         };
     }
-
-    // Se puede eliminar addPlayerButton
-    protected void addPlayerButton(PlayerListPayload.PlayerInfo player, int x, int y) {
-        Text worldTextName = DIMENSION_NAMES.getOrDefault(
-                player.position().worldId(),
-                Text.literal(player.position().worldId())
-        );
-        this.addDrawableChild(ButtonWidget.builder(
-                Text.literal(player.name()),
-                button -> openPlayerActionsScreen(player.uuid())
-        ).dimensions(x, y, 200, 20).build());
-    }
-
-    private static final Map<String, Text> DIMENSION_NAMES = Map.of(
-            "minecraft:overworld", Text.translatable("gui.general.dimension.overworld"),
-            "minecraft:the_nether", Text.translatable("gui.general.dimension.nether"),
-            "minecraft:the_end", Text.translatable("gui.general.dimension.end")
-    );
 
     private void openPlayerActionsScreen(UUID targetUuid) {
         if (client != null) {
