@@ -47,15 +47,6 @@ public class PlayerActionsScreen extends Screen {
             button -> sendAdminAction(AdminActionPayload.ActionType.TELEPORT_TO_SPAWN)
         ).dimensions(width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
 
-        // Teletransportar a coordenadas
-//        addDrawableChild(ButtonWidget.builder(
-//            Text.literal("Teletransportar a coordenadas"),
-//            button -> {
-//                assert client != null;
-//                client.setScreen(new CoordinatesInputScreen(this, targetUuid));
-//            }
-//        ).dimensions(width / 2 - buttonWidth / 2, startY + spacing * 2, buttonWidth, buttonHeight).build());
-
         // Teletransportar a otro jugador
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("gui.playerActions.teleportPlayerToPlayer"),
