@@ -14,15 +14,9 @@ import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
 import java.util.Objects;
 import zero.mods.fabric.tp4mods.item.ModItems;
-import zero.mods.fabric.tp4mods.payload.AdminActionPayload;
-import zero.mods.fabric.tp4mods.util.FeedbackUtil;
-import zero.mods.fabric.tp4mods.util.PayloadRegister;
-import zero.mods.fabric.tp4mods.util.TeleportUtil;
-import zero.mods.fabric.tp4mods.payload.PlayerListPayload;
-import zero.mods.fabric.tp4mods.payload.TeleportRequestPayload;
-import zero.mods.fabric.tp4mods.payload.TeleportResponsePayload;
+import zero.mods.fabric.tp4mods.payload.*;
+import zero.mods.fabric.tp4mods.util.*;
 import net.minecraft.util.Rarity;
-import zero.mods.fabric.tp4mods.util.Utils;
 
 public class Tp4Mods implements ModInitializer {
     public static final String MOD_ID = "tp4mods";
@@ -50,6 +44,7 @@ public class Tp4Mods implements ModInitializer {
             PayloadRegister.typesRegister(TeleportRequestPayload.ID, TeleportRequestPayload.CODEC, false);
             PayloadRegister.typesRegister(TeleportResponsePayload.ID, TeleportResponsePayload.CODEC, true);
             PayloadRegister.typesRegister(AdminActionPayload.ID, AdminActionPayload.CODEC, false);
+            PayloadRegister.typesRegister(RefreshSkinsPayload.ID, RefreshSkinsPayload.CODEC, true);
             LOGGER.info("Payload Types registrados!");
         } catch (Exception e) {
             LOGGER.info("No se han podido registrar los tipos de los Payloads debido a: {}", e.getMessage());
@@ -137,6 +132,16 @@ public class Tp4Mods implements ModInitializer {
                             }
                             return 1;
                         })
+                        .then(CommandManager.literal("refreshSkins")
+                                .requires(source -> source.hasPermissionLevel(2))
+                                .executes(context -> {
+                                    ServerPlayerEntity player = context.getSource().getPlayer();
+                                    if (player != null) {
+                                        ServerPlayNetworking.send(player, new RefreshSkinsPayload(true));
+                                    }
+                                    return 1;
+                                })
+                        )
                 )
         );
     }
