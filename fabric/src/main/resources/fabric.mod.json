@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "tpmanager",
+  "version": "${version}",
+  "name": "Tp Manager",
+  "description": "Graphical Administrator Interface to manage users' teleportation",
+  "authors": [
+    "Edujos"
+  ],
+  "contact": {
+    "homepage": "https://github.com/EDUJOS/tp-manager",
+    "sources": "https://github.com/EDUJOS/tp-manager/releases/tag/v${version}"
+  },
+  "license": "MIT",
+  "icon": "assets/tpmanager/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "zero.mods.tpmanager.fabric.TpManagerFabric"
+    ],
+    "client": [
+      "zero.mods.tpmanager.fabric.client.TpManagerFabricClient"
+    ]
+  },
+  "mixins": [
+    "tpmanager.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "architectury": ">=15.0.3",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": ""
+      }
+    }
+  }
+}

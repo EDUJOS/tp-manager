@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "tpmanager:item/tp_manager_item"
+  }
+} 

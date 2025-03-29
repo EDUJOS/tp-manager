@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "tpmanager:item/tp_manager_item"
+  }
+}
