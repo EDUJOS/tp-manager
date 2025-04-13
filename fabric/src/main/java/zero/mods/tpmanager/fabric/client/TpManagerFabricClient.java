@@ -21,7 +21,7 @@ import java.util.List;
 import static zero.mods.tpmanager.fabric.client.PlayerHeadManager.client;
 
 public final class TpManagerFabricClient implements ClientModInitializer {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final Logger LOGGER = LogUtils.getLogger();
     public static Item modItem;
 
     @Override
