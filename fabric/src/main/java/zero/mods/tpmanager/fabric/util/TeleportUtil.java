@@ -68,21 +68,21 @@ public class TeleportUtil {
             ServerWorld targetWorld2 = player.getServerWorld();
 
             if (targetWorld != null) {
-                Utils.LOGGER.info("Teleportando jugador {} a: Mundo={}, X={}, Y={}, Z={}, Yaw={}, Pitch={}\n\nTarget World: {}\nTarget World #2: {}",
-                        player.getName().getString(), position.worldId(),
-                        position.x(), position.y(), position.z(),
-                        position.yaw(), position.pitch(),
-                        targetWorld.getRegistryKey().getValue(), targetWorld2.getRegistryKey().getValue()
-                );
-
-                Utils.LOGGER.info("{}", currentWorld.getRegistryKey());
+//                Utils.LOGGER.info("Teleportando jugador {} a: Mundo={}, X={}, Y={}, Z={}, Yaw={}, Pitch={}\n\nTarget World: {}\nTarget World #2: {}",
+//                        player.getName().getString(), position.worldId(),
+//                        position.x(), position.y(), position.z(),
+//                        position.yaw(), position.pitch(),
+//                        targetWorld.getRegistryKey().getValue(), targetWorld2.getRegistryKey().getValue()
+//                );
+//
+//                Utils.LOGGER.info("{}", currentWorld.getRegistryKey());
                 if (currentWorld == targetWorld) {
                     BlockPos targetPos = new BlockPos((int)position.x(), (int)position.y(), (int)position.z());
 
                     if (!targetWorld.getBlockState(targetPos.down()).isSolidBlock(targetWorld, targetPos)){
                         BlockPos safePos = findSafePosition(targetWorld, targetPos);
                         if (safePos != null) {
-                            Utils.LOGGER.info("Ajustando posición Y de {} a {} para evitar caída", position.y(), safePos.getY() + 1);
+//                            Utils.LOGGER.info("Ajustando posición Y de {} a {} para evitar caída", position.y(), safePos.getY() + 1);
                             player.requestTeleport(position.x(), safePos.getY() + 1, position.z());
                             player.networkHandler.syncWithPlayerPosition();
                             return;
@@ -95,6 +95,7 @@ public class TeleportUtil {
                 }
 //                player.tryUsePortal();
                 // El problema está en que no estamos manejando bien el mundo, revisar si los datos recibidos está bien y propios de un mundo
+                Utils.LOGGER.info("target world#1: {}, target world id: {}, dimension: {}\ntarget world#2: {}, target world id: {}, dimension: {}", targetWorld, targetWorld.getRegistryKey().getValue().getNamespace(),targetWorld.getDimension().toString(), targetWorld2, targetWorld2.getRegistryKey().getValue().getNamespace(),targetWorld2.getDimension().toString());
                 player.teleport(targetWorld,
                         position.x(), position.y(), position.z(),
                         Set.of(PositionFlag.X, PositionFlag.Y, PositionFlag.Z),
