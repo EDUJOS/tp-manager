@@ -56,14 +56,15 @@ public class PlayerActionsScreen extends Screen {
             }
         ).dimensions(width / 2 - buttonWidth / 2, startY + spacing * 3, buttonWidth, buttonHeight).build());
 
-        // Botón Volver
+        // Botón Volver posicionado en la parte inferior con mejor espaciado
+        int backButtonY = this.height - 30; // 30 píxeles desde la parte inferior
         addDrawableChild(ButtonWidget.builder(
                 Text.translatable("gui.general.back"),
             button -> {
                 assert client != null;
                 client.setScreen(parent);
             }
-        ).dimensions(width / 2 - buttonWidth / 2, startY + spacing * 4, buttonWidth, buttonHeight).build());
+        ).dimensions(this.width / 2 - buttonWidth / 2, backButtonY, buttonWidth, buttonHeight).build());
     }
 
     private void sendAdminAction(AdminActionPayload.ActionType actionType) {

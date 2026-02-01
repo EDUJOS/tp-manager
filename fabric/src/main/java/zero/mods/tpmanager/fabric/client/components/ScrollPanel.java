@@ -49,7 +49,8 @@ public class ScrollPanel extends ElementListWidget<ScrollPanel.Entry> {
 
     // @Override
     // public int getRowTop(int index) {
-    //     return this.getY() + 10 - (int)this.getScrollY() + index * this.itemHeight + this.headerHeight;
+    //     //return this.getY() + (index * this.itemHeight);
+    //     return (int)(this.getY() - (int)this.getScrollY() + index * this.itemHeight + this.headerHeight) + 10;
     // }
 
 //    @Override

@@ -11,6 +11,7 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import zero.mods.tpmanager.fabric.client.components.PlayerListScrollPanel;
 import zero.mods.tpmanager.fabric.client.components.Positionable;
 import zero.mods.tpmanager.fabric.client.components.ScrollPanel;
 import zero.mods.tpmanager.fabric.payload.PlayerListPayload;
@@ -27,6 +28,7 @@ public class AdminScreen extends Screen {
     private static final int SECONDARY_COLOR = 0x808080;
     private List<PlayerListPayload.PlayerInfo> players;
     private ScrollPanel scrollPanel;
+    private PlayerListScrollPanel playerListScrollPanel;
 
     public AdminScreen(List<PlayerListPayload.PlayerInfo> players) {
         super(Text.translatable("gui.admin.title"));
@@ -44,6 +46,16 @@ public class AdminScreen extends Screen {
         private int x;
         private int y;
         private boolean focused;
+
+        @Override
+        public int getX() {
+            return this.x;
+        }
+
+        @Override
+        public int getY() {
+            return this.y;
+        }
 
         public PlayerCardWidget(int x, int y, PlayerListPayload.PlayerInfo player) {
             this.x = x;
@@ -91,32 +103,103 @@ public class AdminScreen extends Screen {
         }
     }
 
+    /**
+     * Implementación de PlayerListItem para el nuevo PlayerListScrollPanel
+     */
+    public class PlayerCardItem implements PlayerListScrollPanel.PlayerListItem {
+        private final PlayerListPayload.PlayerInfo player;
+        private final int panelX;
+
+        public PlayerCardItem(PlayerListPayload.PlayerInfo player, int panelX) {
+            this.player = player;
+            this.panelX = panelX;
+        }
+
+        @Override
+        public void render(DrawContext context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
+            // Centrar la tarjeta en el ancho del panel
+            int cardX = x + (width - CARD_WIDTH) / 2;
+            
+            // Renderizar la tarjeta del jugador
+            renderPlayerCard(context, player, cardX, y);
+            
+            // Mostrar borde si el mouse está sobre la tarjeta
+            if (isMouseOverCard(mouseX, mouseY, cardX, y)) {
+                context.drawBorder(cardX, y, CARD_WIDTH, CARD_HEIGHT, 0xFFFFFF);
+            }
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            // La lógica de clic debe ser manejada por el panel principal
+            // ya que las coordenadas necesitan ser ajustadas
+            return false;
+        }
+        
+        private boolean isMouseOverCard(double mouseX, double mouseY, int cardX, int cardY) {
+            return mouseX >= cardX && mouseX <= cardX + CARD_WIDTH &&
+                   mouseY >= cardY && mouseY <= cardY + CARD_HEIGHT;
+        }
+        
+        public PlayerListPayload.PlayerInfo getPlayer() {
+            return player;
+        }
+    }
+
     @Override
     protected void init() {
         super.init();
         int panelWidth = (int) (this.width * 0.8);
+        int altPanelWidth = width - 100;
+        // Optimizar altura del panel: dejar espacio suficiente para botón pero maximizar área útil
+        int altPanelHeight = height - 75; // Espacio más eficiente
         int panelHeight = Math.max((int) (this.height * 0.65), 175);
         int panelX = (this.width - panelWidth) / 2;
         int panelY = 30;
         int itemHeight = CARD_HEIGHT;// + 10;
 
-        this.scrollPanel = new ScrollPanel(panelX, panelY, panelWidth, panelHeight, itemHeight, ScrollPanel.Alignment.LEFT, 50);
-        this.addDrawableChild(this.scrollPanel);
-        this.renderPlayerList();
+        // Usar solo el nuevo PlayerListScrollPanel
+        this.playerListScrollPanel = new PlayerListScrollPanel(panelX, panelY, altPanelWidth, altPanelHeight, CARD_HEIGHT, 2);
+        
+        // Configurar el callback de clic para manejar clics en tarjetas de jugadores
+        this.playerListScrollPanel.setOnItemClick(itemIndex -> {
+            if (itemIndex >= 0 && itemIndex < players.size()) {
+                PlayerListPayload.PlayerInfo player = players.get(itemIndex);
+                openPlayerActionsScreen(player.uuid());
+            }
+        });
+        
+        this.renderPlayerListOptimized();
 
+        // Botón cerrar posicionado en la parte inferior con mejor espaciado
+        int closeButtonY = this.height - 30; // 30 píxeles desde la parte inferior
         this.addDrawableChild(ButtonWidget.builder(
                 Text.translatable("gui.general.close"),
                 button -> this.close()
-        ).dimensions(width / 2 - 100, panelY + panelHeight + 10, 200, 20).build());
+        ).dimensions(this.width / 2 - 100, closeButtonY, 200, 20).build());
+    }
+
+    /**
+     * Método optimizado para renderizar la lista de jugadores con el nuevo PlayerListScrollPanel
+     */
+    private void renderPlayerListOptimized() {
+        playerListScrollPanel.clearItems();
+        int panelWidth = width - 50;
+        int panelX = (this.width - panelWidth) / 2;
+
+        for (PlayerListPayload.PlayerInfo player : players) {
+            PlayerCardItem cardItem = new PlayerCardItem(player, panelX);
+            playerListScrollPanel.addItem(cardItem);
+        }
     }
 
     protected void renderPlayerList() {
         scrollPanel.clearEntries();
-        // int yPos = 0;
+        int index= 0;
         for (PlayerListPayload.PlayerInfo player : players) {
-            PlayerCardWidget card = new PlayerCardWidget(0, 0, player);
+            PlayerCardWidget card = new PlayerCardWidget(0, scrollPanel.getRowTop(index), player);
             scrollPanel.addEntry(new ScrollPanel.Entry(card));
-            // yPos += scrollPanel.itemHeight;
+            index++;
         }
     }
 
@@ -177,6 +260,39 @@ public class AdminScreen extends Screen {
         renderBackground(context, mouseX, mouseY, delta);
         super.render(context, mouseX, mouseY, delta);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
+        playerListScrollPanel.render(context, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (playerListScrollPanel.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (playerListScrollPanel.mouseReleased(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (playerListScrollPanel.mouseDragged(mouseX, mouseY, button, deltaX, deltaY)) {
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (playerListScrollPanel.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override
