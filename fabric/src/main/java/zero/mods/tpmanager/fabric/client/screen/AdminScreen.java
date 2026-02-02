@@ -105,42 +105,39 @@ public class AdminScreen extends Screen {
 
     /**
      * Implementación de PlayerListItem para el nuevo PlayerListScrollPanel
+     * Ahora usa las coordenadas que el panel le pasa (x,y,width,height) en render(...)
+     * para evitar desalineaciones al scrollear o con distintos tamaños de GUI.
      */
     public class PlayerCardItem implements PlayerListScrollPanel.PlayerListItem {
         private final PlayerListPayload.PlayerInfo player;
-        private final int panelX;
 
-        public PlayerCardItem(PlayerListPayload.PlayerInfo player, int panelX) {
+        public PlayerCardItem(PlayerListPayload.PlayerInfo player) {
             this.player = player;
-            this.panelX = panelX;
         }
 
         @Override
         public void render(DrawContext context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
-            // Centrar la tarjeta en el ancho del panel
+            // Centrar la tarjeta en el ancho del panel usando la x proporcionada por el panel
             int cardX = x + (width - CARD_WIDTH) / 2;
-            
-            // Renderizar la tarjeta del jugador
-            renderPlayerCard(context, player, cardX, y);
-            
-            // Mostrar borde si el mouse está sobre la tarjeta
-            if (isMouseOverCard(mouseX, mouseY, cardX, y)) {
-                context.drawBorder(cardX, y, CARD_WIDTH, CARD_HEIGHT, 0xFFFFFF);
+            int cardY = y;
+
+            // Renderiza la tarjeta con las utilidades existentes
+            renderPlayerCard(context, player, cardX, cardY);
+
+            // Dibujar borde si el mouse está sobre la tarjeta (coordenadas absolutas)
+            if (mouseX >= cardX && mouseX <= cardX + CARD_WIDTH &&
+                mouseY >= cardY && mouseY <= cardY + CARD_HEIGHT) {
+                context.drawBorder(cardX, cardY, CARD_WIDTH, CARD_HEIGHT, 0xFFFFFF);
             }
         }
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            // La lógica de clic debe ser manejada por el panel principal
-            // ya que las coordenadas necesitan ser ajustadas
+            // El panel ya calcula el índice y llama onItemClick; devolvemos false para
+            // que la interacción sea gestionada por el panel por índice.
             return false;
         }
-        
-        private boolean isMouseOverCard(double mouseX, double mouseY, int cardX, int cardY) {
-            return mouseX >= cardX && mouseX <= cardX + CARD_WIDTH &&
-                   mouseY >= cardY && mouseY <= cardY + CARD_HEIGHT;
-        }
-        
+
         public PlayerListPayload.PlayerInfo getPlayer() {
             return player;
         }
@@ -160,7 +157,7 @@ public class AdminScreen extends Screen {
 
         // Usar solo el nuevo PlayerListScrollPanel
         this.playerListScrollPanel = new PlayerListScrollPanel(panelX, panelY, altPanelWidth, altPanelHeight, CARD_HEIGHT, 2);
-        
+
         // Configurar el callback de clic para manejar clics en tarjetas de jugadores
         this.playerListScrollPanel.setOnItemClick(itemIndex -> {
             if (itemIndex >= 0 && itemIndex < players.size()) {
@@ -168,7 +165,7 @@ public class AdminScreen extends Screen {
                 openPlayerActionsScreen(player.uuid());
             }
         });
-        
+
         this.renderPlayerListOptimized();
 
         // Botón cerrar posicionado en la parte inferior con mejor espaciado
@@ -184,11 +181,10 @@ public class AdminScreen extends Screen {
      */
     private void renderPlayerListOptimized() {
         playerListScrollPanel.clearItems();
-        int panelWidth = width - 50;
-        int panelX = (this.width - panelWidth) / 2;
 
+        // Añadimos items; el panel se encarga del layout vertical y del scroll.
         for (PlayerListPayload.PlayerInfo player : players) {
-            PlayerCardItem cardItem = new PlayerCardItem(player, panelX);
+            PlayerCardItem cardItem = new PlayerCardItem(player);
             playerListScrollPanel.addItem(cardItem);
         }
     }
@@ -301,4 +297,4 @@ public class AdminScreen extends Screen {
             client.setScreen(null); // Cerrar y volver al juego
         }
     }
-} 
+}
