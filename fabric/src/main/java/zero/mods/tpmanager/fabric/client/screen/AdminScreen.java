@@ -95,10 +95,6 @@ public class AdminScreen extends Screen {
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            if (isMouseOver(mouseX, mouseY)) {
-                openPlayerActionsScreen(player.uuid());
-                return true;
-            }
             return false;
         }
     }
@@ -158,13 +154,13 @@ public class AdminScreen extends Screen {
         // Usar solo el nuevo PlayerListScrollPanel
         this.playerListScrollPanel = new PlayerListScrollPanel(panelX, panelY, altPanelWidth, altPanelHeight, CARD_HEIGHT, 2);
 
-        // Configurar el callback de clic para manejar clics en tarjetas de jugadores
-        this.playerListScrollPanel.setOnItemClick(itemIndex -> {
-            if (itemIndex >= 0 && itemIndex < players.size()) {
-                PlayerListPayload.PlayerInfo player = players.get(itemIndex);
-                openPlayerActionsScreen(player.uuid());
-            }
-        });
+        // Callback de clic deshabilitado para evitar interacción directa
+        // this.playerListScrollPanel.setOnItemClick(itemIndex -> {
+        //     if (itemIndex >= 0 && itemIndex < players.size()) {
+        //         PlayerListPayload.PlayerInfo player = players.get(itemIndex);
+        //         openPlayerActionsScreen(player.uuid());
+        //     }
+        // });
 
         this.renderPlayerListOptimized();
 
@@ -235,6 +231,8 @@ public class AdminScreen extends Screen {
                 x, y + 10, SECONDARY_COLOR
         );
     }
+
+    //private void drawFastActions() {}
 
     private MutableText getDimensionName(String worldId) {
         return switch (worldId) {
