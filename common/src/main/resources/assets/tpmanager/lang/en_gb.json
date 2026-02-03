@@ -14,6 +14,7 @@
     "gui.playerActions.teleportToPlayer": "Teleport to the Player",
     "gui.playerActions.teleportToAdmin": "Bring my",
     "gui.playerActions.teleportToSpawn": "Send to Spawn",
+    "gui.playerActions.options": "Options",
     "gui.playerActions.teleportPlayerToPlayer": "Teleport to another Player",
     "gui.playerSelect.title": "Select target Player",
     "gui.coordinatesInput.title": "Enter Coordinates",

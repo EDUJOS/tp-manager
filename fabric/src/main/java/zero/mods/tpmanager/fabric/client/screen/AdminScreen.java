@@ -11,9 +11,11 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import zero.mods.tpmanager.fabric.client.ClientNetworking;
 import zero.mods.tpmanager.fabric.client.components.PlayerListScrollPanel;
 import zero.mods.tpmanager.fabric.client.components.Positionable;
 import zero.mods.tpmanager.fabric.client.components.ScrollPanel;
+import zero.mods.tpmanager.fabric.payload.AdminActionPayload;
 import zero.mods.tpmanager.fabric.payload.PlayerListPayload;
 import java.util.List;
 import java.util.UUID;
@@ -21,11 +23,14 @@ import zero.mods.tpmanager.fabric.util.PlayerSkinCache;
 import net.minecraft.client.gui.Element;
 
 public class AdminScreen extends Screen {
-    public static final int CARD_WIDTH = 250;
+    public static final int CARD_WIDTH = 300;
     public static final int CARD_HEIGHT = 40;
     private static final int HEAD_SIZE = 40;
     private static final int TEXT_COLOR = 0xFFFFFF;
     private static final int SECONDARY_COLOR = 0x808080;
+    private static final int BUTTON_WIDTH = 75;
+    private static final int BUTTON_HEIGHT = 10;
+    private static final int BUTTON_SPACING = 2;
     private List<PlayerListPayload.PlayerInfo> players;
     private ScrollPanel scrollPanel;
     private PlayerListScrollPanel playerListScrollPanel;
@@ -95,61 +100,100 @@ public class AdminScreen extends Screen {
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            if (isMouseOver(mouseX, mouseY)) {
-                openPlayerActionsScreen(player.uuid());
-                return true;
-            }
             return false;
         }
     }
 
     /**
      * Implementación de PlayerListItem para el nuevo PlayerListScrollPanel
+     * Ahora usa las coordenadas que el panel le pasa (x,y,width,height) en render(...)
+     * para evitar desalineaciones al scrollear o con distintos tamaños de GUI.
      */
     public class PlayerCardItem implements PlayerListScrollPanel.PlayerListItem {
         private final PlayerListPayload.PlayerInfo player;
-        private final int panelX;
+        private int cardX;
+        private int cardY;
 
-        public PlayerCardItem(PlayerListPayload.PlayerInfo player, int panelX) {
+        public PlayerCardItem(PlayerListPayload.PlayerInfo player) {
             this.player = player;
-            this.panelX = panelX;
         }
 
         @Override
         public void render(DrawContext context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
-            // Centrar la tarjeta en el ancho del panel
-            int cardX = x + (width - CARD_WIDTH) / 2;
-            
-            // Renderizar la tarjeta del jugador
-            renderPlayerCard(context, player, cardX, y);
-            
-            // Mostrar borde si el mouse está sobre la tarjeta
-            if (isMouseOverCard(mouseX, mouseY, cardX, y)) {
-                context.drawBorder(cardX, y, CARD_WIDTH, CARD_HEIGHT, 0xFFFFFF);
+            // Centrar la tarjeta en el ancho del panel usando la x proporcionada por el panel
+            this.cardX = x + (width - CARD_WIDTH) / 2;
+            this.cardY = y;
+
+            // Renderiza la tarjeta con las utilidades existentes
+            renderPlayerCard(context, player, cardX, cardY, mouseX, mouseY);
+
+            // Dibujar borde si el mouse está sobre la tarjeta (coordenadas absolutas)
+            if (mouseX >= cardX && mouseX <= cardX + CARD_WIDTH &&
+                mouseY >= cardY && mouseY <= cardY + CARD_HEIGHT) {
+                context.drawBorder(cardX, cardY, CARD_WIDTH, CARD_HEIGHT, 0xFFFFFF);
             }
         }
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            // La lógica de clic debe ser manejada por el panel principal
-            // ya que las coordenadas necesitan ser ajustadas
+            // Verificar si se hizo clic en alguno de los botones de acciones rápidas
+            int buttonX = cardX + CARD_WIDTH - BUTTON_WIDTH - 5;
+            int buttonY = cardY + 3;
+
+            // Botón "Traer a mi"
+            if (isMouseOverButton(mouseX, mouseY, buttonX, buttonY)) {
+                handleTeleportToMe(player.uuid());
+                return true;
+            }
+
+            // Botón "Enviar al spawn"
+            if (isMouseOverButton(mouseX, mouseY, buttonX, buttonY + BUTTON_HEIGHT + BUTTON_SPACING)) {
+                handleTeleportToSpawn(player.uuid());
+                return true;
+            }
+
+            // Botón "Opciones"
+            if (isMouseOverButton(mouseX, mouseY, buttonX, buttonY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2)) {
+                openPlayerActionsScreen(player.uuid());
+                return true;
+            }
+
             return false;
         }
-        
-        private boolean isMouseOverCard(double mouseX, double mouseY, int cardX, int cardY) {
-            return mouseX >= cardX && mouseX <= cardX + CARD_WIDTH &&
-                   mouseY >= cardY && mouseY <= cardY + CARD_HEIGHT;
+
+        private boolean isMouseOverButton(double mouseX, double mouseY, int buttonX, int buttonY) {
+            return mouseX >= buttonX && mouseX <= buttonX + BUTTON_WIDTH &&
+                    mouseY >= buttonY && mouseY <= buttonY + BUTTON_HEIGHT;
         }
-        
+
         public PlayerListPayload.PlayerInfo getPlayer() {
             return player;
         }
     }
 
+    private void sendAdminAction(UUID targetUuid, AdminActionPayload.ActionType actionType) {
+        AdminActionPayload payload = null;
+        if (actionType == AdminActionPayload.ActionType.TELEPORT_TO_ADMIN ||
+                actionType == AdminActionPayload.ActionType.TELEPORT_TO_SPAWN) {
+            payload = new AdminActionPayload(targetUuid, actionType, null, null);
+        }
+        if (payload != null) {
+            ClientNetworking.sendAdminAction(payload);
+        }
+    }
+
+    private void handleTeleportToMe(UUID targetUuid) {
+        sendAdminAction(targetUuid, AdminActionPayload.ActionType.TELEPORT_TO_ADMIN);
+    }
+
+    private void handleTeleportToSpawn(UUID targetUuid) {
+        sendAdminAction(targetUuid, AdminActionPayload.ActionType.TELEPORT_TO_SPAWN);
+    }
+
     @Override
     protected void init() {
         super.init();
-        int panelWidth = (int) (this.width * 0.8);
+        int panelWidth = (int) (this.width * 0.85);
         int altPanelWidth = width - 100;
         // Optimizar altura del panel: dejar espacio suficiente para botón pero maximizar área útil
         int altPanelHeight = height - 75; // Espacio más eficiente
@@ -160,15 +204,15 @@ public class AdminScreen extends Screen {
 
         // Usar solo el nuevo PlayerListScrollPanel
         this.playerListScrollPanel = new PlayerListScrollPanel(panelX, panelY, altPanelWidth, altPanelHeight, CARD_HEIGHT, 2);
-        
-        // Configurar el callback de clic para manejar clics en tarjetas de jugadores
-        this.playerListScrollPanel.setOnItemClick(itemIndex -> {
-            if (itemIndex >= 0 && itemIndex < players.size()) {
-                PlayerListPayload.PlayerInfo player = players.get(itemIndex);
-                openPlayerActionsScreen(player.uuid());
-            }
-        });
-        
+
+        // Callback de clic deshabilitado para evitar interacción directa
+        // this.playerListScrollPanel.setOnItemClick(itemIndex -> {
+        //     if (itemIndex >= 0 && itemIndex < players.size()) {
+        //         PlayerListPayload.PlayerInfo player = players.get(itemIndex);
+        //         openPlayerActionsScreen(player.uuid());
+        //     }
+        // });
+
         this.renderPlayerListOptimized();
 
         // Botón cerrar posicionado en la parte inferior con mejor espaciado
@@ -184,11 +228,10 @@ public class AdminScreen extends Screen {
      */
     private void renderPlayerListOptimized() {
         playerListScrollPanel.clearItems();
-        int panelWidth = width - 50;
-        int panelX = (this.width - panelWidth) / 2;
 
+        // Añadimos items; el panel se encarga del layout vertical y del scroll.
         for (PlayerListPayload.PlayerInfo player : players) {
-            PlayerCardItem cardItem = new PlayerCardItem(player, panelX);
+            PlayerCardItem cardItem = new PlayerCardItem(player);
             playerListScrollPanel.addItem(cardItem);
         }
     }
@@ -204,9 +247,45 @@ public class AdminScreen extends Screen {
     }
 
     private void renderPlayerCard(DrawContext context, PlayerListPayload.PlayerInfo player, int x, int y) {
+        renderPlayerCard(context, player, x, y, -1, -1);
+    }
+
+    private void renderPlayerCard(DrawContext context, PlayerListPayload.PlayerInfo player, int x, int y, double mouseX, double mouseY) {
         context.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0xFF121212);
         renderPlayerHead(context, x, y, player);
         drawPlayerInfo(context, x + HEAD_SIZE + 15, y + 10, player);
+        renderQuickActionButtons(context, x, y, mouseX, mouseY);
+    }
+
+    private void renderQuickActionButtons(DrawContext context, int x, int y, double mouseX, double mouseY) {
+        int buttonX = x + CARD_WIDTH - BUTTON_WIDTH - 2;
+        int buttonY = y + 3;
+
+        // Botón "Traer a mi"
+        renderButton(context, buttonX, buttonY, Text.translatable("gui.playerActions.teleportToAdmin"), mouseX, mouseY);
+
+        // Botón "Enviar al spawn"
+        renderButton(context, buttonX, buttonY + BUTTON_HEIGHT + BUTTON_SPACING, Text.translatable("gui.playerActions.teleportToSpawn"), mouseX, mouseY);
+
+        // Botón "Opciones"
+        renderButton(context, buttonX, buttonY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2, Text.translatable("gui.playerActions.options"), mouseX, mouseY);
+    }
+
+    private void renderButton(DrawContext context, int x, int y, Text text, double mouseX, double mouseY) {
+        boolean isHovering = mouseX >= x && mouseX <= x + BUTTON_WIDTH &&
+                mouseY >= y && mouseY <= y + BUTTON_HEIGHT;
+        int bgColor = isHovering ? 0xFF4A4A4A : 0xFF2A2A2A;
+        int borderColor = isHovering ? 0xFFFFFFFF : 0xFF808080;
+
+        context.fill(x, y, x + BUTTON_WIDTH, y + BUTTON_HEIGHT, bgColor);
+        context.drawBorder(x, y, BUTTON_WIDTH, BUTTON_HEIGHT, borderColor);
+        
+        // Dibujar texto con escala reducida
+        context.getMatrices().push();
+        context.getMatrices().translate(x + BUTTON_WIDTH / 2.0, y + BUTTON_HEIGHT / 2.0 - 2.0, 0);
+        context.getMatrices().scale(0.65f, 0.65f, 1.0f);
+        context.drawCenteredTextWithShadow(textRenderer, text, 0, 0, 0xFFFFFF);
+        context.getMatrices().pop();
     }
 
     private void renderPlayerHead(DrawContext context, int x, int y, PlayerListPayload.PlayerInfo player) {
@@ -239,6 +318,8 @@ public class AdminScreen extends Screen {
                 x, y + 10, SECONDARY_COLOR
         );
     }
+
+    //private void drawFastActions() {}
 
     private MutableText getDimensionName(String worldId) {
         return switch (worldId) {
@@ -301,4 +382,4 @@ public class AdminScreen extends Screen {
             client.setScreen(null); // Cerrar y volver al juego
         }
     }
-} 
+}
