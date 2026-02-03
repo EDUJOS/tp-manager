@@ -11,9 +11,11 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import zero.mods.tpmanager.fabric.client.ClientNetworking;
 import zero.mods.tpmanager.fabric.client.components.PlayerListScrollPanel;
 import zero.mods.tpmanager.fabric.client.components.Positionable;
 import zero.mods.tpmanager.fabric.client.components.ScrollPanel;
+import zero.mods.tpmanager.fabric.payload.AdminActionPayload;
 import zero.mods.tpmanager.fabric.payload.PlayerListPayload;
 import java.util.List;
 import java.util.UUID;
@@ -21,11 +23,14 @@ import zero.mods.tpmanager.fabric.util.PlayerSkinCache;
 import net.minecraft.client.gui.Element;
 
 public class AdminScreen extends Screen {
-    public static final int CARD_WIDTH = 250;
+    public static final int CARD_WIDTH = 300;
     public static final int CARD_HEIGHT = 40;
     private static final int HEAD_SIZE = 40;
     private static final int TEXT_COLOR = 0xFFFFFF;
     private static final int SECONDARY_COLOR = 0x808080;
+    private static final int BUTTON_WIDTH = 75;
+    private static final int BUTTON_HEIGHT = 10;
+    private static final int BUTTON_SPACING = 2;
     private List<PlayerListPayload.PlayerInfo> players;
     private ScrollPanel scrollPanel;
     private PlayerListScrollPanel playerListScrollPanel;
@@ -106,6 +111,8 @@ public class AdminScreen extends Screen {
      */
     public class PlayerCardItem implements PlayerListScrollPanel.PlayerListItem {
         private final PlayerListPayload.PlayerInfo player;
+        private int cardX;
+        private int cardY;
 
         public PlayerCardItem(PlayerListPayload.PlayerInfo player) {
             this.player = player;
@@ -114,11 +121,11 @@ public class AdminScreen extends Screen {
         @Override
         public void render(DrawContext context, int x, int y, int width, int height, int mouseX, int mouseY, float delta) {
             // Centrar la tarjeta en el ancho del panel usando la x proporcionada por el panel
-            int cardX = x + (width - CARD_WIDTH) / 2;
-            int cardY = y;
+            this.cardX = x + (width - CARD_WIDTH) / 2;
+            this.cardY = y;
 
             // Renderiza la tarjeta con las utilidades existentes
-            renderPlayerCard(context, player, cardX, cardY);
+            renderPlayerCard(context, player, cardX, cardY, mouseX, mouseY);
 
             // Dibujar borde si el mouse está sobre la tarjeta (coordenadas absolutas)
             if (mouseX >= cardX && mouseX <= cardX + CARD_WIDTH &&
@@ -129,9 +136,34 @@ public class AdminScreen extends Screen {
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            // El panel ya calcula el índice y llama onItemClick; devolvemos false para
-            // que la interacción sea gestionada por el panel por índice.
+            // Verificar si se hizo clic en alguno de los botones de acciones rápidas
+            int buttonX = cardX + CARD_WIDTH - BUTTON_WIDTH - 5;
+            int buttonY = cardY + 3;
+
+            // Botón "Traer a mi"
+            if (isMouseOverButton(mouseX, mouseY, buttonX, buttonY)) {
+                handleTeleportToMe(player.uuid());
+                return true;
+            }
+
+            // Botón "Enviar al spawn"
+            if (isMouseOverButton(mouseX, mouseY, buttonX, buttonY + BUTTON_HEIGHT + BUTTON_SPACING)) {
+                handleTeleportToSpawn(player.uuid());
+                return true;
+            }
+
+            // Botón "Opciones"
+            if (isMouseOverButton(mouseX, mouseY, buttonX, buttonY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2)) {
+                openPlayerActionsScreen(player.uuid());
+                return true;
+            }
+
             return false;
+        }
+
+        private boolean isMouseOverButton(double mouseX, double mouseY, int buttonX, int buttonY) {
+            return mouseX >= buttonX && mouseX <= buttonX + BUTTON_WIDTH &&
+                    mouseY >= buttonY && mouseY <= buttonY + BUTTON_HEIGHT;
         }
 
         public PlayerListPayload.PlayerInfo getPlayer() {
@@ -139,10 +171,29 @@ public class AdminScreen extends Screen {
         }
     }
 
+    private void sendAdminAction(UUID targetUuid, AdminActionPayload.ActionType actionType) {
+        AdminActionPayload payload = null;
+        if (actionType == AdminActionPayload.ActionType.TELEPORT_TO_ADMIN ||
+                actionType == AdminActionPayload.ActionType.TELEPORT_TO_SPAWN) {
+            payload = new AdminActionPayload(targetUuid, actionType, null, null);
+        }
+        if (payload != null) {
+            ClientNetworking.sendAdminAction(payload);
+        }
+    }
+
+    private void handleTeleportToMe(UUID targetUuid) {
+        sendAdminAction(targetUuid, AdminActionPayload.ActionType.TELEPORT_TO_ADMIN);
+    }
+
+    private void handleTeleportToSpawn(UUID targetUuid) {
+        sendAdminAction(targetUuid, AdminActionPayload.ActionType.TELEPORT_TO_SPAWN);
+    }
+
     @Override
     protected void init() {
         super.init();
-        int panelWidth = (int) (this.width * 0.8);
+        int panelWidth = (int) (this.width * 0.85);
         int altPanelWidth = width - 100;
         // Optimizar altura del panel: dejar espacio suficiente para botón pero maximizar área útil
         int altPanelHeight = height - 75; // Espacio más eficiente
@@ -196,9 +247,45 @@ public class AdminScreen extends Screen {
     }
 
     private void renderPlayerCard(DrawContext context, PlayerListPayload.PlayerInfo player, int x, int y) {
+        renderPlayerCard(context, player, x, y, -1, -1);
+    }
+
+    private void renderPlayerCard(DrawContext context, PlayerListPayload.PlayerInfo player, int x, int y, double mouseX, double mouseY) {
         context.fill(x, y, x + CARD_WIDTH, y + CARD_HEIGHT, 0xFF121212);
         renderPlayerHead(context, x, y, player);
         drawPlayerInfo(context, x + HEAD_SIZE + 15, y + 10, player);
+        renderQuickActionButtons(context, x, y, mouseX, mouseY);
+    }
+
+    private void renderQuickActionButtons(DrawContext context, int x, int y, double mouseX, double mouseY) {
+        int buttonX = x + CARD_WIDTH - BUTTON_WIDTH - 2;
+        int buttonY = y + 3;
+
+        // Botón "Traer a mi"
+        renderButton(context, buttonX, buttonY, Text.translatable("gui.playerActions.teleportToAdmin"), mouseX, mouseY);
+
+        // Botón "Enviar al spawn"
+        renderButton(context, buttonX, buttonY + BUTTON_HEIGHT + BUTTON_SPACING, Text.translatable("gui.playerActions.teleportToSpawn"), mouseX, mouseY);
+
+        // Botón "Opciones"
+        renderButton(context, buttonX, buttonY + (BUTTON_HEIGHT + BUTTON_SPACING) * 2, Text.translatable("gui.playerActions.options"), mouseX, mouseY);
+    }
+
+    private void renderButton(DrawContext context, int x, int y, Text text, double mouseX, double mouseY) {
+        boolean isHovering = mouseX >= x && mouseX <= x + BUTTON_WIDTH &&
+                mouseY >= y && mouseY <= y + BUTTON_HEIGHT;
+        int bgColor = isHovering ? 0xFF4A4A4A : 0xFF2A2A2A;
+        int borderColor = isHovering ? 0xFFFFFFFF : 0xFF808080;
+
+        context.fill(x, y, x + BUTTON_WIDTH, y + BUTTON_HEIGHT, bgColor);
+        context.drawBorder(x, y, BUTTON_WIDTH, BUTTON_HEIGHT, borderColor);
+        
+        // Dibujar texto con escala reducida
+        context.getMatrices().push();
+        context.getMatrices().translate(x + BUTTON_WIDTH / 2.0, y + BUTTON_HEIGHT / 2.0 - 2.0, 0);
+        context.getMatrices().scale(0.65f, 0.65f, 1.0f);
+        context.drawCenteredTextWithShadow(textRenderer, text, 0, 0, 0xFFFFFF);
+        context.getMatrices().pop();
     }
 
     private void renderPlayerHead(DrawContext context, int x, int y, PlayerListPayload.PlayerInfo player) {
